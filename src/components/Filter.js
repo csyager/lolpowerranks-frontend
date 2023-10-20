@@ -5,6 +5,8 @@ import {useState, useEffect} from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faFilter } from '@fortawesome/free-solid-svg-icons';
 
+import ClipLoader from 'react-spinners/ClipLoader';
+
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Accordion from 'react-bootstrap/Accordion';
@@ -13,39 +15,30 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import Badge from 'react-bootstrap/Badge';
 import Card from 'react-bootstrap/Card';
 
+import { BACKEND_URL } from '../Constants';
+
 
 function FilterForm(props) {
 
-    // TODO:  source this data from the API, instead of hardcoding
-    let teams = [
-        {
-          "team_name": "test-team-1",
-          "team_code": "TT1"
-        }, 
-        {
-          "team_name": "test-team-2",
-          "team_code": "TT2"
-        },
-        {
-          "team_name": "test-team-3",
-          "team_code": "TT3"
-        }
-    ];
+    const [loadingTeams, setLoadingTeams] = useState(true);
+    const [loadingTournaments, setLoadingTournaments] = useState(true);
+    const [teams, setTeams] = useState([]);
+    const [tournaments, setTournaments] = useState([]);
 
-    let tournaments = [
-        {
-          "tournament_id": "test-tournament-1",
-          "tournament_name": "test tournament 1"
-        }, 
-        {
-          "tournament_id": "test-tournament-2",
-          "tournament_name": "test tournament 2"
-        },
-        {
-          "tournament_id": "test-tournament-3",
-          "tournament_name": "test tournament 3"
-        }
-    ];
+    // on component load, send request to backend for teams.
+    useEffect(() => {
+        fetch(BACKEND_URL + "teams")
+            .then(response => response.json())
+            .then(data => { console.log(data); return data; })
+            .then(data => setTeams(data.teams))
+            .then(setLoadingTeams(false));
+        
+        fetch(BACKEND_URL + "tournaments")
+            .then(response => response.json())
+            .then(data => { console.log(data); return data; })
+            .then(data => setTournaments(data.tournaments))
+            .then(setLoadingTournaments(false));
+    }, [])
 
     // currently visible set of tournaments, based on name-filtering
     const [filteredTournaments, setFilteredTournaments] = useState([]);
@@ -61,6 +54,8 @@ function FilterForm(props) {
     // currently visible badges
     const [badges, setBadges] = useState([]);
 
+    const [tournamentBadge, setTournamentBadge] = useState(null);
+
     // currently selected tournament
     const [selectedTournament, setSelectedTournament] = useState(null);
 
@@ -71,6 +66,16 @@ function FilterForm(props) {
     const [showTournamentDropdown, setShowTournamentDropdown] = useState(false);
     // when true, teams dropdown should be visible
     const [showTeamsDropdown, setShowTeamsDropdown] = useState(false);
+
+    // when true, tournament filter should be inactive
+    const [tournamentFilterDisabled, setTournamentFilterDisabled] = useState(false);
+    // when true, team filter should be inactive
+    const [teamFilterDisabled, setTeamFilterDisabled] = useState(false);
+
+    //tournament form value
+    const [tournamentInputValue, setTournamentInputValue] = useState("");
+    // team input value
+    const [teamInputValue, setTeamInputValue] = useState("");
 
     // updates selected tournament state, to track which touranment has been selected.
     function updateSelectedTournament(tournamentId) {
@@ -86,18 +91,24 @@ function FilterForm(props) {
 
     useEffect(() => {
         if (selectedTournament != null) {
-            props.setRankingHeader(selectedTournament.tournament_name);
+            // props.setRankingHeader(selectedTournament.tournament_name);
+            setTournamentBadge(
+                <Badge bg="success" key={selectedTournament.tournament_name} className="me-3 mb-3" >{selectedTournament.tournament_name}</Badge>
+            )
+            setTeamFilterDisabled(true);
         } else {
             props.setRankingHeader("Global");
+            setTeamFilterDisabled(false);
+            setTournamentBadge(null);
         }
-    })
+    }, [selectedTournament])
 
     // updates selected teams state, to track which teams have been selected
     function updateSelectedTeams(team) {
-        if (!selectedTeams.includes(team.team_code)) {
-            setSelectedTeams([...selectedTeams, team.team_code]);      
+        if (!selectedTeams.includes(team.team_id)) {
+            setSelectedTeams([...selectedTeams, team.team_id]);      
         } else {
-            setSelectedTeams(selectedTeams.filter(elem => elem !== team.team_code));     
+            setSelectedTeams(selectedTeams.filter(elem => elem !== team.team_id));     
         }
     }
 
@@ -105,16 +116,23 @@ function FilterForm(props) {
     function filterTournaments(event) {
         // close the teams dropdown
         setShowTeamsDropdown(false);
+        setTournamentInputValue(event.target.value);
         if (event.target.value === "") {
             setShowTournamentDropdown(false);
         } else {
             setShowTournamentDropdown(true);
         }
-        let filteredTournaments = [];
-        tournaments.map((tournament) => {
-            if (tournament.tournament_name.includes(event.target.value)) {
-                filteredTournaments.push(tournament.tournament_id);
+        let count = 0;
+        let filteredTournaments = tournaments.filter(tournament => {
+            if (count < 10) {
+                if (tournament.tournament_name.includes(event.target.value)){
+                    count++;
+                    return true;
+                }
             }
+            return false;
+        }).map(tournament => {
+            return tournament.tournament_id;
         });
         setFilteredTournaments(filteredTournaments);
     }
@@ -137,27 +155,41 @@ function FilterForm(props) {
     function filterTeams(event) {
         // close the tournaments dropdown
         setShowTournamentDropdown(false);
+        setTeamInputValue(event.target.value);
         if (event.target.value === "") {
             setShowTeamsDropdown(false);
         } else {
             setShowTeamsDropdown(true);
         }
-        let filteredTeams = []
-        teams.map((team) => {
-            if (team.team_name.includes(event.target.value)) {
-                filteredTeams.push(team.team_code);
+        let count = 0;
+        let filteredTeams = teams.filter(team => {
+            if (count < 10) {
+                if (team.team_name.includes(event.target.value)){
+                    count++;
+                    return true;
+                }
             }
+            return false;
+        }).map(team => {
+            return team.team_id;
         });
         setFilteredTeams(filteredTeams);
     }
 
     // adds badges showing which teams are currently selected
     useEffect(() => {
+        setSelectedTournament(null);
+        if (selectedTeams.length > 0) {
+            setTournamentFilterDisabled(true);
+        } else {
+            setTournamentFilterDisabled(false);
+        }
+       
         let badges = [];
         teams.forEach(team => {
-            if (selectedTeams.includes(team.team_code)) {
+            if (selectedTeams.includes(team.team_id)) {
                 badges.push(
-                    <Badge bg="success" key={team.team_code} className="me-3 mb-3" id={team.team_code + "-badge"} >{team.team_name}</Badge>
+                    <Badge bg="success" key={team.team_id} className="me-3 mb-3" id={team.team_id + "-badge"} >{team.team_name}</Badge>
                 )
             }
         })
@@ -169,16 +201,16 @@ function FilterForm(props) {
     useEffect(() => {
         let filteredTeamsDropdownEntries = [];
         teams.forEach(team => {
-            if (filteredTeams.includes(team.team_code)) {
-                if (selectedTeams.includes(team.team_code)) {
+            if (filteredTeams.includes(team.team_id)) {
+                if (selectedTeams.includes(team.team_id)) {
                     filteredTeamsDropdownEntries.push(
-                        <Dropdown.Item key={team.team_code} eventKey={team.team_code} id={team.team_code + "-dropdown"} onClick={() => updateSelectedTeams(team)}>
-                            <FontAwesomeIcon icon={faCheck} className="me-2" id={team.team_code + "-check"} />{team.team_name}
+                        <Dropdown.Item key={team.team_id} eventKey={team.team_id} id={team.team_id + "-dropdown"} onClick={() => updateSelectedTeams(team)}>
+                            <FontAwesomeIcon icon={faCheck} className="me-2" id={team.team_id + "-check"} />{team.team_name}
                         </Dropdown.Item>
                     );
                 } else {
                     filteredTeamsDropdownEntries.push(
-                        <Dropdown.Item key={team.team_code} eventKey={team.team_code} id={team.team_code + "-dropdown"} onClick={() => updateSelectedTeams(team)}>
+                        <Dropdown.Item key={team.team_id} eventKey={team.team_id} id={team.team_id + "-dropdown"} onClick={() => updateSelectedTeams(team)}>
                             {team.team_name}
                         </Dropdown.Item>
                     );
@@ -204,42 +236,68 @@ function FilterForm(props) {
     function clearFilters() {
         setSelectedTeams([]);
         setSelectedTournament(null);
+        setTeamInputValue("");
+        setTournamentInputValue("");
+        props.setQueryTeams([]);
+        props.setQueryTournament(null);
     }
 
-    return (
-        <Form>
-            <Form.Group className="mb-3" controlId="formTournament">
-                <Form.Label>Tournament</Form.Label>
-                <Form.Control type="text" placeholder="Tournament name" onChange={filterTournaments}/>
-                <Dropdown.Menu show={showTournamentDropdown}>
-                    <Dropdown.Header>Select tournaments</Dropdown.Header>
-                    {filteredTournamentsDropdownEntries}
-                    <Dropdown.Divider />
-                    <Dropdown.Item eventKey="close" onClick={closeTournamentsDropdown} className="dropdown-close-button">Close</Dropdown.Item>
-                </Dropdown.Menu>
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="formTeams">
-                <Form.Label>Teams</Form.Label>
-                <div>{badges}</div>
-                <Form.Control type="text" placeholder="Teams" onClick={filterTeams} onChange={filterTeams}/>
-                <Dropdown.Menu show={showTeamsDropdown}>
-                    <Dropdown.Header>Select teams</Dropdown.Header>
-                    {filteredTeamsDropdownEntries}
-                    <Dropdown.Divider />
-                    <Dropdown.Item eventKey="close" onClick={closeTeamsDropdown} className="dropdown-close-button">Close</Dropdown.Item>
-                </Dropdown.Menu>
-                <Form.Text className="text-muted">
-                    Select any number of teams to get rankings.
-                </Form.Text>
-            </Form.Group>
-            <Button variant="danger" className="me-2" onClick={clearFilters}>
-                Clear Filters
-            </Button>
-            <Button variant="primary" type="submit">
-                Submit
-            </Button>
-        </Form>
-    )
+    function applyFilter() {
+        if (selectedTeams.length > 0) {
+            props.setQueryTeams(selectedTeams);
+            props.setQueryTournament(null);
+            props.setRankingHeader("Global");
+        } else if (selectedTournament != null) {
+            props.setQueryTournament(selectedTournament.tournament_id);
+            props.setQueryTeams([]);
+            props.setRankingHeader(selectedTournament.tournament_name);
+        }
+    }
+
+    if (loadingTeams || loadingTournaments) {
+        return <ClipLoader />
+    } else {
+        return (
+            <Form>
+                <Form.Group className="mb-3" controlId="formTournament">
+                    <Form.Label>Tournament</Form.Label>
+                    <div>{tournamentBadge}</div>
+                    <Form.Control type="text" placeholder="Tournament name" onChange={filterTournaments} disabled={tournamentFilterDisabled} value={tournamentInputValue}/>
+                    <Dropdown.Menu show={showTournamentDropdown}>
+                        <Dropdown.Header>Select tournaments</Dropdown.Header>
+                        {filteredTournamentsDropdownEntries}
+                        <Dropdown.Divider />
+                        <Dropdown.Item eventKey="close" onClick={closeTournamentsDropdown} className="dropdown-close-button">Close</Dropdown.Item>
+                    </Dropdown.Menu>
+                    <Form.Text className="text-muted">
+                        Select a tournament to get rankings for that tournament.
+                    </Form.Text>
+                </Form.Group>
+                <Form.Group className="mb-3" controlId="formTeams">
+                    <Form.Label>Teams</Form.Label>
+                    <div>{badges}</div>
+                    <Form.Control type="text" placeholder="Teams" onClick={filterTeams} onChange={filterTeams} disabled={teamFilterDisabled} value={teamInputValue}/>
+                    <Dropdown.Menu show={showTeamsDropdown}>
+                        <Dropdown.Header>Select teams</Dropdown.Header>
+                        {filteredTeamsDropdownEntries}
+                        <Dropdown.Divider />
+                        <Dropdown.Item eventKey="close" onClick={closeTeamsDropdown} className="dropdown-close-button">Close</Dropdown.Item>
+                    </Dropdown.Menu>
+                    <Form.Text className="text-muted">
+                        Select any number of teams to get rankings.
+                    </Form.Text>
+                </Form.Group>
+                <Button variant="danger" className="me-2" onClick={clearFilters}>
+                    Clear Filters
+                </Button>
+                <Button variant="primary" onClick={applyFilter}>
+                    Apply Filter
+                </Button>
+            </Form>
+        )
+    }
+
+    
 }
 
 
@@ -258,7 +316,7 @@ function Filter(props) {
         <Accordion flush>
             <Card className="mb-3">
                 <Card.Header>
-                    <FilterButton eventKey="0"><FontAwesomeIcon icon={faFilter} className="me-2"/> Filter</FilterButton>
+                    <FilterButton eventKey="0"><FontAwesomeIcon icon={faFilter} className="me-2"/> Filters</FilterButton>
                 </Card.Header>
                 <Accordion.Collapse eventKey="0">
                     <Card.Body>

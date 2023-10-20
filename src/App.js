@@ -2,33 +2,59 @@ import './App.css';
 import Container from 'react-bootstrap/Container';
 import Results from './components/Results';
 import Filter from './components/Filter';
+import { BACKEND_URL } from './Constants';
 
-import {useState} from "react";
+import {useState, useEffect} from "react";
 
 function App() {
-  let testResults = [
-    {
-      "team_name": "test-team-1",
-      "team_code": "TT1"
-    }, 
-    {
-      "team_name": "test-team-2",
-      "team_code": "TT2"
-    },
-    {
-      "team_name": "test-team-3",
-      "team_code": "TT3"
-    }
-  ];
-
   const [rankingHeader, setRankingHeader] = useState("Global");
+
+  const [results, setResults] = useState([]);
+
+  const [queryTeams, setQueryTeams] = useState([]);
+  const [queryTournament, setQueryTournament] = useState(null);
+
+  // fetch initial results
+  useEffect(() => {
+    fetch(BACKEND_URL + "global_rankings")
+      .then(response => response.json())
+      .then(data => { console.log(data); return data; })
+      .then(data => setResults(data));
+  }, []);
+
+  // query based on filters
+  useEffect(() => {
+    if (queryTeams.length > 0) {
+      console.log("sending request for teams");
+      fetch(BACKEND_URL + "team_rankings?team_ids=" + queryTeams.join(","))
+        .then(response => response.json())
+        .then(data => { console.log(data); return data; })
+        .then(data => setResults(data));
+    } else if (queryTournament != null) {
+      console.log("sending request for tournaments");
+      fetch(BACKEND_URL + "tournament_rankings/" + queryTournament)
+        .then(response => response.json())
+        .then(data => { console.log(data); return data; })
+        .then(data => setResults(data));
+    } else {
+      console.log("sending request for global_rankings");
+      fetch(BACKEND_URL + "global_rankings")
+        .then(response => response.json())
+        .then(data => { console.log(data); return data; })
+        .then(data => setResults(data));
+    }
+  }, [queryTeams, queryTournament]);
 
   return (
     <div className="App">
       <Container className="mt-3">
         <h1>{rankingHeader} Rankings</h1>
-        <Filter setRankingHeader={setRankingHeader} />
-        <Results results={testResults} />
+        <Filter 
+          setRankingHeader={setRankingHeader} 
+          setQueryTeams={setQueryTeams} 
+          setQueryTournament={setQueryTournament}
+        />
+        <Results results={results} />
       </Container>
     </div>
   );

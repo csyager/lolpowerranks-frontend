@@ -1,0 +1,1 @@
+export const BACKEND_URL = "http://ranking-service-alb-1966321887.us-east-1.elb.amazonaws.com/ranking-service/"
