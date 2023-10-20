@@ -2,6 +2,7 @@ import './App.css';
 import Container from 'react-bootstrap/Container';
 import Results from './components/Results';
 import Filter from './components/Filter';
+import { Image } from 'react-bootstrap';
 import { BACKEND_URL } from './Constants';
 
 import {useState, useEffect} from "react";
@@ -48,7 +49,8 @@ function App() {
   return (
     <div className="App">
       <Container className="mt-3">
-        <h1>{rankingHeader} Rankings</h1>
+        <Image src="/logo.png" fluid className="mb-3" />
+        <h2>{rankingHeader} Rankings</h2>
         <Filter 
           setRankingHeader={setRankingHeader} 
           setQueryTeams={setQueryTeams} 
