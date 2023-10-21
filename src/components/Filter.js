@@ -17,6 +17,40 @@ import Card from 'react-bootstrap/Card';
 
 import { BACKEND_URL } from '../Constants';
 
+function StageSelection(props) {
+    const [options, setOptions] = useState([]);
+
+    useEffect(() => {
+        fetch(BACKEND_URL + "tournaments/" + props.tournament.tournament_id + "/stages")
+            .then(response => response.json())
+            .then(data => { console.log(data); return data; })
+            .then(data => {
+                let options = [];
+                data.stages.forEach(stage => {
+                    options.push(
+                        <option key={stage.stage_slug} value={stage.stage_slug}>{stage.stage_name}</option>
+                    )
+                });
+                setOptions(options);
+            })
+    }, [])
+
+    return (
+        <Form.Group className="mb-3" controlId="stage-selection">
+            <Form.Label>Stage Selection</Form.Label>
+            <Form.Control as="select" onChange={(e) => {console.log(e); props.setSelectedStage(e.nativeEvent.target.value);}}>
+                <option value="">Select a stage</option>
+                <option value="">All stages</option>
+                {options}
+            </Form.Control>
+            <Form.Text className="text-muted">
+                Optionally select a stage, to filter tournament results by stage.
+            </Form.Text>
+        </Form.Group>
+    );
+}
+
+
 
 function FilterForm(props) {
 
@@ -62,6 +96,9 @@ function FilterForm(props) {
     // currently selected teams
     const [selectedTeams, setSelectedTeams] = useState([]);
 
+    // currently selected stage
+    const [selectedStage, setSelectedStage] = useState(null);
+
     // when true, tournament dropdown should be visible
     const [showTournamentDropdown, setShowTournamentDropdown] = useState(false);
     // when true, teams dropdown should be visible
@@ -76,6 +113,9 @@ function FilterForm(props) {
     const [tournamentInputValue, setTournamentInputValue] = useState("");
     // team input value
     const [teamInputValue, setTeamInputValue] = useState("");
+
+    // stage selection input
+    const [stageInput, setStageInput] = useState(null);
 
     // updates selected tournament state, to track which touranment has been selected.
     function updateSelectedTournament(tournamentId) {
@@ -96,10 +136,12 @@ function FilterForm(props) {
                 <Badge bg="success" key={selectedTournament.tournament_name} className="me-3 mb-3" >{selectedTournament.tournament_name}</Badge>
             )
             setTeamFilterDisabled(true);
+            setStageInput(<StageSelection tournament={selectedTournament} setSelectedStage={setSelectedStage}/>)
         } else {
             props.setRankingHeader("Global");
             setTeamFilterDisabled(false);
             setTournamentBadge(null);
+            setStageInput(null);
         }
     }, [selectedTournament])
 
@@ -251,6 +293,7 @@ function FilterForm(props) {
             props.setQueryTournament(selectedTournament.tournament_id);
             props.setQueryTeams([]);
             props.setRankingHeader(selectedTournament.tournament_name);
+            props.setQueryStage(selectedStage);
         }
     }
 
@@ -273,6 +316,7 @@ function FilterForm(props) {
                         Select a tournament to get rankings for that tournament.
                     </Form.Text>
                 </Form.Group>
+                {stageInput}
                 <Form.Group className="mb-3" controlId="formTeams">
                     <Form.Label>Teams</Form.Label>
                     <div>{badges}</div>

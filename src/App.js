@@ -14,6 +14,7 @@ function App() {
 
   const [queryTeams, setQueryTeams] = useState([]);
   const [queryTournament, setQueryTournament] = useState(null);
+  const [queryStage, setQueryStage] = useState(null);
 
   // fetch initial results
   useEffect(() => {
@@ -33,7 +34,11 @@ function App() {
         .then(data => setResults(data));
     } else if (queryTournament != null) {
       console.log("sending request for tournaments");
-      fetch(BACKEND_URL + "tournament_rankings/" + queryTournament)
+      let url = BACKEND_URL + "tournament_rankings/" + queryTournament;
+      if (queryStage != null && queryStage != "") {
+        url += "?stage=" + queryStage;
+      }
+      fetch(url)
         .then(response => response.json())
         .then(data => { console.log(data); return data; })
         .then(data => setResults(data));
@@ -44,7 +49,7 @@ function App() {
         .then(data => { console.log(data); return data; })
         .then(data => setResults(data));
     }
-  }, [queryTeams, queryTournament]);
+  }, [queryTeams, queryTournament, queryStage]);
 
   return (
     <div className="App">
@@ -55,6 +60,7 @@ function App() {
           setRankingHeader={setRankingHeader} 
           setQueryTeams={setQueryTeams} 
           setQueryTournament={setQueryTournament}
+          setQueryStage={setQueryStage}
         />
         <Results results={results} />
       </Container>
