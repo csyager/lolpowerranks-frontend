@@ -167,7 +167,7 @@ function FilterForm(props) {
         let count = 0;
         let filteredTournaments = tournaments.filter(tournament => {
             if (count < 10) {
-                if (tournament.tournament_name.includes(event.target.value)){
+                if (tournament.tournament_name.toLowerCase().includes(event.target.value.toLowerCase())){
                     count++;
                     return true;
                 }
@@ -206,7 +206,7 @@ function FilterForm(props) {
         let count = 0;
         let filteredTeams = teams.filter(team => {
             if (count < 10) {
-                if (team.team_name.includes(event.target.value)){
+                if (team.team_name.toLowerCase().includes(event.target.value.toLowerCase())){
                     count++;
                     return true;
                 }
